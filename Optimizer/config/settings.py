@@ -12,4 +12,4 @@ class CuttingSettings:
 
     kerf_mm: float = 3.0
 
-    min_reusable_offcut_mm: float = 150.0
+    min_reusable_offcut_mm: float = 400.0

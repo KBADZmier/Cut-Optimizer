@@ -10,3 +10,5 @@ class StockProfile:
 
     id: str
     length_mm: float
+    color: str = ""
+    is_offcut: bool = False

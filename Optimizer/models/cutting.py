@@ -14,6 +14,7 @@ class Cut:
     frame_name: str
     side: str
     length_mm: float
+    color: str = ""
 
 
 @dataclass
@@ -41,6 +42,5 @@ class CuttingPlan:
     usable_length_mm: float
     used_length_mm: float
     remaining_mm: float
-
     reusable_offcut: bool
     waste_mm: float

@@ -1,16 +1,30 @@
-from typing import List
-
+from typing import List, Optional
 from ortools.sat.python import cp_model
-
 from config.settings import CuttingSettings
-from models.cutting import Cut, CuttingPlan, PlacedCut
+from models.cutting import (
+    Cut,
+    CuttingPlan,
+    PlacedCut,
+)
 from models.profile import StockProfile
 
 
 class OrToolsOptimizer:
+    """
+    
+    1. wykonać wszystkie elementy,
+    2. minimalizować rzeczywisty odpad,
+    3. minimalizować liczbę wykorzystanych profili,
+    4. minimalizować całkowitą pozostałość materiału,
+    5. preferować krótsze profile, jeżeli wcześniejsze
+       kryteria są takie same.
 
+    """
 
-    def __init__(self, settings: CuttingSettings):
+    def __init__(
+        self,
+        settings: CuttingSettings,
+    ):
         self.settings = settings
 
     def optimize(
@@ -23,9 +37,13 @@ class OrToolsOptimizer:
             return []
 
         if not profiles:
-            raise ValueError("Brak dostępnych profili.")
+            raise ValueError(
+                "Brak dostępnych profili."
+            )
 
-        model = cp_model.CpModel()
+        self._validate_profiles(
+            profiles
+        )
 
         scale = 10
 
@@ -42,357 +60,331 @@ class OrToolsOptimizer:
         start_margin = int(
             round(self.settings.start_margin_mm * scale)
         )
-
         end_margin = int(
             round(self.settings.end_margin_mm * scale)
         )
-
         kerf = int(
             round(self.settings.kerf_mm * scale)
         )
-
-        min_offcut = int(
+        min_reusable_offcut = int(
             round(self.settings.min_reusable_offcut_mm * scale)
         )
 
         usable_lengths = [
-            length - start_margin - end_margin
-            for length in profile_lengths
+            profile_length - start_margin - end_margin
+            for profile_length in profile_lengths
         ]
 
-        # --------------------------------------------------
-        # ZMIENNE
-        # --------------------------------------------------
+        for profile, usable in zip(profiles, usable_lengths):
+            if usable <= 0:
+                raise ValueError(
+                    f"Profil {profile.id} ({profile.length_mm:.1f} mm) "
+                    "jest za krótki względem sumy marginesów "
+                    f"({self.settings.start_margin_mm:.1f} mm + "
+                    f"{self.settings.end_margin_mm:.1f} mm)."
+                )
 
-        # assignment[c, p] = 1,
-        # jeżeli element c znajduje się na profilu p.
+        model = cp_model.CpModel()
+
+
         assignment = {}
 
-        for c in range(len(cuts)):
-            for p in range(len(profiles)):
-
-                if cut_lengths[c] <= usable_lengths[p]:
-                    assignment[c, p] = model.NewBoolVar(
-                        f"cut_{c}_profile_{p}"
+        for cut_index in range(len(cuts)):
+            for profile_index in range(len(profiles)):
+                if cut_lengths[cut_index] <= usable_lengths[profile_index]:
+                    assignment[cut_index, profile_index] = model.NewBoolVar(
+                        f"cut_{cut_index}_profile_{profile_index}"
                     )
 
-        # Każdy element musi zostać przydzielony dokładnie
-        # do jednego profilu.
-        for c in range(len(cuts)):
-
+        for cut_index in range(len(cuts)):
             possible_profiles = [
-                assignment[c, p]
-                for p in range(len(profiles))
-                if (c, p) in assignment
+                assignment[cut_index, profile_index]
+                for profile_index in range(len(profiles))
+                if (cut_index, profile_index) in assignment
             ]
 
             if not possible_profiles:
                 raise ValueError(
-                    f"Element {cuts[c].length_mm} mm "
-                    f"nie mieści się na żadnym profilu."
+                    "Brak profilu dla elementu "
+                    f"{cuts[cut_index].length_mm:.1f} mm."
                 )
 
             model.AddExactlyOne(possible_profiles)
 
-        # --------------------------------------------------
-        # CZY PROFIL JEST UŻYTY
-        # --------------------------------------------------
 
         profile_used = []
 
-        for p in range(len(profiles)):
-
-            variable = model.NewBoolVar(
-                f"profile_used_{p}"
-            )
-
+        for profile_index in range(len(profiles)):
+            variable = model.NewBoolVar(f"profile_used_{profile_index}")
             profile_used.append(variable)
 
-            assigned_cuts = [
-                assignment[c, p]
-                for c in range(len(cuts))
-                if (c, p) in assignment
+            assigned = [
+                assignment[cut_index, profile_index]
+                for cut_index in range(len(cuts))
+                if (cut_index, profile_index) in assignment
             ]
 
-            if assigned_cuts:
-                model.AddMaxEquality(
-                    variable,
-                    assigned_cuts,
-                )
+            if assigned:
+                model.AddMaxEquality(variable, assigned)
             else:
                 model.Add(variable == 0)
 
-        # --------------------------------------------------
-        # KOLEJNOŚĆ ELEMENTÓW NA PROFILU
-        # --------------------------------------------------
 
-        # position[c] określa kolejność elementu
-        # w obrębie jego profilu.
-        #
-        # Dzięki temu możemy policzyć rzazy.
+        cut_count = []
 
-        positions = {}
+        for profile_index in range(len(profiles)):
+            variable = model.NewIntVar(0, len(cuts), f"cut_count_{profile_index}")
+            cut_count.append(variable)
 
-        max_position = len(cuts)
+            assigned = [
+                assignment[cut_index, profile_index]
+                for cut_index in range(len(cuts))
+                if (cut_index, profile_index) in assignment
+            ]
 
-        for c in range(len(cuts)):
+            if assigned:
+                model.Add(variable == sum(assigned))
+            else:
+                model.Add(variable == 0)
 
-            positions[c] = model.NewIntVar(
-                0,
-                max_position - 1,
-                f"position_{c}",
-            )
 
-        # Elementy przypisane do tego samego profilu
-        # muszą mieć różne pozycje.
-        for p in range(len(profiles)):
+        material_length = []
 
-            for c1 in range(len(cuts)):
-                for c2 in range(c1 + 1, len(cuts)):
-
-                    if (
-                        (c1, p) not in assignment
-                        or (c2, p) not in assignment
-                    ):
-                        continue
-
-                    same_profile = model.NewBoolVar(
-                        f"same_{c1}_{c2}_{p}"
-                    )
-
-                    model.AddBoolAnd(
-                        [
-                            assignment[c1, p],
-                            assignment[c2, p],
-                        ]
-                    ).OnlyEnforceIf(same_profile)
-
-                    model.AddBoolOr(
-                        [
-                            assignment[c1, p].Not(),
-                            assignment[c2, p].Not(),
-                        ]
-                    ).OnlyEnforceIf(
-                        same_profile.Not()
-                    )
-
-                    model.Add(
-                        positions[c1] != positions[c2]
-                    ).OnlyEnforceIf(same_profile)
-
-        # --------------------------------------------------
-        # ZUŻYCIE PROFILI
-        # --------------------------------------------------
-
-        used_length = []
-
-        for p in range(len(profiles)):
-
-            max_length = usable_lengths[p]
-
+        for profile_index in range(len(profiles)):
             variable = model.NewIntVar(
                 0,
-                max_length,
-                f"used_length_{p}",
+                usable_lengths[profile_index],
+                f"material_length_{profile_index}",
+            )
+            material_length.append(variable)
+
+            expression = sum(
+                cut_lengths[cut_index] * assignment[cut_index, profile_index]
+                for cut_index in range(len(cuts))
+                if (cut_index, profile_index) in assignment
             )
 
-            used_length.append(variable)
-
-            # Suma długości elementów.
-            model.Add(
-                variable
-                >= sum(
-                    cut_lengths[c] * assignment[c, p]
-                    for c in range(len(cuts))
-                    if (c, p) in assignment
-                )
-            )
-
-        # --------------------------------------------------
-        # ODPAD / POZOSTAŁOŚĆ
-        # --------------------------------------------------
+            model.Add(variable == expression)
 
         remaining = []
 
-        for p in range(len(profiles)):
-
+        for profile_index in range(len(profiles)):
             variable = model.NewIntVar(
                 0,
-                usable_lengths[p],
-                f"remaining_{p}",
+                usable_lengths[profile_index],
+                f"remaining_{profile_index}",
             )
-
             remaining.append(variable)
+
+            kerf_expression = (
+                kerf * cut_count[profile_index]
+                - kerf * profile_used[profile_index]
+            )
 
             model.Add(
                 variable
-                == usable_lengths[p] - used_length[p]
+                == (
+                    usable_lengths[profile_index] * profile_used[profile_index]
+                    - material_length[profile_index]
+                    - kerf_expression
+                )
             )
 
-        # --------------------------------------------------
-        # FUNKCJA CELU
-        # --------------------------------------------------
 
-        # Priorytet 1:
-        # minimalna liczba użytych profili.
-        #
-        # Priorytet 2:
-        # minimalna suma pozostałości.
-        #
-        # Profilów będzie maksymalnie kilkanaście,
-        # więc bardzo duża waga pozwala zachować
-        # kolejność priorytetów.
+        waste = []
 
+        for profile_index in range(len(profiles)):
+            waste_variable = model.NewIntVar(
+                0,
+                usable_lengths[profile_index],
+                f"waste_{profile_index}",
+            )
+            waste.append(waste_variable)
+
+            reusable = model.NewBoolVar(f"reusable_{profile_index}")
+
+            model.Add(reusable <= profile_used[profile_index])
+
+            model.Add(
+                remaining[profile_index] >= min_reusable_offcut * reusable
+            )
+
+            model.Add(
+                remaining[profile_index]
+                <= (min_reusable_offcut - 1)
+                + (usable_lengths[profile_index] * reusable)
+            )
+
+            model.Add(
+                waste_variable
+                <= usable_lengths[profile_index] * (1 - reusable)
+            )
+
+            model.Add(
+                waste_variable
+                >= remaining[profile_index]
+                - (usable_lengths[profile_index] * reusable)
+            )
+
+            model.Add(waste_variable <= remaining[profile_index])
+
+        # FUNKCJA CELU 
+        # 1. MINIMALNY ODPAD
+        # 2. MINIMALNA LICZBA PROFILI
+        # 3. MINIMALNA CAŁKOWITA POZOSTAŁOŚĆ
+        # 4. MINIMALNA DŁUGOŚĆ WYKORZYSTANYCH PROFILI
+        #
+
+        total_waste = sum(waste)
         total_profiles = sum(profile_used)
-
         total_remaining = sum(remaining)
-
-        model.Minimize(
-            total_profiles * 1_000_000
-            + total_remaining
+        total_profile_length = sum(
+            profile_lengths[index] * profile_used[index]
+            for index in range(len(profiles))
         )
 
-        # --------------------------------------------------
-        # SOLVER
-        # --------------------------------------------------
+        total_time_budget = 120.0
+        stage_time_budget = total_time_budget / 4.0
 
         solver = cp_model.CpSolver()
-
-        solver.parameters.max_time_in_seconds = 10.0
-
         solver.parameters.num_search_workers = 8
 
-        status = solver.Solve(model)
+        def solve_stage(objective_expression, stage_name: str) -> int:
+            model.Minimize(objective_expression)
+            solver.parameters.max_time_in_seconds = stage_time_budget
 
-        if status not in (
-            cp_model.OPTIMAL,
-            cp_model.FEASIBLE,
-        ):
-            raise ValueError(
-                "OR-Tools nie znalazł rozwiązania."
-            )
+            status = solver.Solve(model)
 
-        # --------------------------------------------------
-        # ODCZYT ROZWIĄZANIA
-        # --------------------------------------------------
+            if status == cp_model.INFEASIBLE:
+                raise ValueError(
+                    "OR-Tools potwierdził, że problem jest niewykonalny "
+                    f"(etap: {stage_name})."
+                )
 
-        plans: List[CuttingPlan] = []
+            if status == cp_model.MODEL_INVALID:
+                raise ValueError(
+                    f"OR-Tools zgłosił nieprawidłowy model (etap: {stage_name}). "
+                    f"Szczegóły walidacji: {model.Validate()}"
+                )
 
-        for p, profile in enumerate(profiles):
+            if status == cp_model.UNKNOWN:
+                raise ValueError(
+                    "OR-Tools nie zakończył obliczeń w wyznaczonym czasie "
+                    f"(etap: {stage_name}). Limit: {stage_time_budget:.1f} s."
+                )
 
-            if solver.Value(profile_used[p]) == 0:
+            if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+                raise ValueError(
+                    f"Nieoczekiwany status OR-Tools: {status} (etap: {stage_name})"
+                )
+
+            return solver.Value(objective_expression)
+
+        # Etap 1: minimalny odpad.
+        best_waste = solve_stage(total_waste, "minimalny odpad")
+        model.Add(total_waste == best_waste)
+
+        # Etap 2: minimalna liczba profili, przy zachowaniu odpadu z etapu 1.
+        best_profiles = solve_stage(total_profiles, "minimalna liczba profili")
+        model.Add(total_profiles == best_profiles)
+
+        # Etap 3: minimalna całkowita pozostałość, przy zachowaniu etapów 1-2.
+        best_remaining = solve_stage(
+            total_remaining, "minimalna całkowita pozostałość"
+        )
+        model.Add(total_remaining == best_remaining)
+
+        # Etap 4: minimalna długość wykorzystanych profili (preferuj krótsze).
+        solve_stage(total_profile_length, "minimalna długość profili")
+
+   
+
+        plans = []
+
+        for profile_index, profile in enumerate(profiles):
+
+            if solver.Value(profile_used[profile_index]) == 0:
                 continue
 
-            assigned = []
+            assigned_cuts = []
 
-            for c, cut in enumerate(cuts):
+            for cut_index, cut in enumerate(cuts):
+                variable = assignment.get((cut_index, profile_index))
 
-                if (c, p) not in assignment:
+                if variable is None:
                     continue
 
-                if solver.Value(
-                    assignment[c, p]
-                ) == 0:
-                    continue
+                if solver.Value(variable) == 1:
+                    assigned_cuts.append(cut)
 
-                assigned.append(c)
-
-            # Sortowanie według pozycji.
-            assigned.sort(
-                key=lambda c: solver.Value(
-                    positions[c]
-                )
+        
+            assigned_cuts.sort(
+                key=lambda cut: (-cut.length_mm, cut.id)
             )
 
             placed_cuts = []
+            current_position = self.settings.start_margin_mm
 
-            current_position = (
-                self.settings.start_margin_mm
-            )
-
-            for index in assigned:
-
-                cut = cuts[index]
-
-                if placed_cuts:
-
-                    current_position += (
-                        self.settings.kerf_mm
-                    )
+            for index, cut in enumerate(assigned_cuts):
+                if index > 0:
+                    current_position += self.settings.kerf_mm
 
                 start = current_position
-
-                end = (
-                    start
-                    + cut.length_mm
-                )
+                end = start + cut.length_mm
 
                 placed_cuts.append(
                     PlacedCut(
                         cut=cut,
-                        start_mm=round(
-                            start,
-                            1,
-                        ),
-                        end_mm=round(
-                            end,
-                            1,
-                        ),
+                        start_mm=round(start, 1),
+                        end_mm=round(end, 1),
                     )
                 )
 
                 current_position = end
 
-            used_mm = (
-                current_position
-                - self.settings.start_margin_mm
-            )
+           
 
-            usable_mm = (
-                profile.length_mm
-                - self.settings.start_margin_mm
-                - self.settings.end_margin_mm
-            )
+            usable_length_scaled = usable_lengths[profile_index]
+            material_length_scaled = solver.Value(material_length[profile_index])
+            remaining_scaled = solver.Value(remaining[profile_index])
+            waste_scaled = solver.Value(waste[profile_index])
 
-            remaining_mm = max(
-                0.0,
-                usable_mm - used_mm,
-            )
-
-            reusable = (
-                remaining_mm
-                >= self.settings.min_reusable_offcut_mm
-            )
-
-            waste_mm = (
-                0.0
-                if reusable
-                else remaining_mm
-            )
+            usable_length = usable_length_scaled / scale
+            used_length = (usable_length_scaled - remaining_scaled) / scale
+            remaining_mm = remaining_scaled / scale
+            waste_mm = waste_scaled / scale
+            reusable = waste_scaled == 0 and remaining_scaled > 0
 
             plans.append(
                 CuttingPlan(
                     profile_id=profile.id,
                     profile_length_mm=profile.length_mm,
                     cuts=placed_cuts,
-                    usable_length_mm=round(
-                        usable_mm,
-                        1,
-                    ),
-                    used_length_mm=round(
-                        used_mm,
-                        1,
-                    ),
-                    remaining_mm=round(
-                        remaining_mm,
-                        1,
-                    ),
+                    usable_length_mm=round(usable_length, 1),
+                    used_length_mm=round(used_length, 1),
+                    remaining_mm=round(remaining_mm, 1),
                     reusable_offcut=reusable,
-                    waste_mm=round(
-                        waste_mm,
-                        1,
-                    ),
+                    waste_mm=round(waste_mm, 1),
                 )
             )
 
         return plans
+
+    @staticmethod
+    def _validate_profiles(
+        profiles: List[StockProfile],
+    ) -> None:
+
+        ids = [profile.id for profile in profiles]
+
+        if len(ids) != len(set(ids)):
+            raise ValueError(
+                "Id profili muszą być unikalne."
+            )
+
+        for profile in profiles:
+            if profile.length_mm <= 0:
+                raise ValueError(
+                    f"Profil {profile.id} "
+                    f"musi mieć długość większą od 0."
+                )

@@ -1,0 +1,170 @@
+ELEMENTY DO WYCIĘCIA:
+
+01 | M1 | długość    | 1448.0 mm
+02 | M1 | długość    | 1448.0 mm
+03 | M1 | wysokość   | 848.0 mm
+04 | M1 | wysokość   | 848.0 mm
+05 | M2 | długość    | 1273.0 mm
+06 | M2 | długość    | 1273.0 mm
+07 | M2 | wysokość   | 948.0 mm
+08 | M2 | wysokość   | 948.0 mm
+09 | M3 | długość    | 1748.0 mm
+10 | M3 | długość    | 1748.0 mm
+11 | M3 | wysokość   | 733.0 mm
+12 | M3 | wysokość   | 733.0 mm
+13 | M4 | długość    | 1148.0 mm
+14 | M4 | długość    | 1148.0 mm
+15 | M4 | wysokość   | 648.0 mm
+16 | M4 | wysokość   | 648.0 mm
+17 | M5 | długość    | 1548.0 mm
+18 | M5 | długość    | 1548.0 mm
+19 | M5 | wysokość   | 883.0 mm
+20 | M5 | wysokość   | 883.0 mm
+21 | M6 | długość    | 1348.0 mm
+22 | M6 | długość    | 1348.0 mm
+23 | M6 | wysokość   | 798.0 mm
+24 | M6 | wysokość   | 798.0 mm
+25 | M7 | długość    | 1948.0 mm
+26 | M7 | długość    | 1948.0 mm
+27 | M7 | wysokość   | 948.0 mm
+28 | M7 | wysokość   | 948.0 mm
+29 | M8 | długość    | 1048.0 mm
+30 | M8 | długość    | 1048.0 mm
+31 | M8 | wysokość   | 533.0 mm
+32 | M8 | wysokość   | 533.0 mm
+33 | M9 | długość    | 1648.0 mm
+34 | M9 | długość    | 1648.0 mm
+35 | M9 | wysokość   | 848.0 mm
+36 | M9 | wysokość   | 848.0 mm
+37 | M10 | długość    | 1298.0 mm
+38 | M10 | długość    | 1298.0 mm
+39 | M10 | wysokość   | 698.0 mm
+40 | M10 | wysokość   | 698.0 mm
+41 | M11 | długość    | 1848.0 mm
+42 | M11 | długość    | 1848.0 mm
+43 | M11 | wysokość   | 1133.0 mm
+44 | M11 | wysokość   | 1133.0 mm
+45 | M12 | długość    | 1198.0 mm
+46 | M12 | długość    | 1198.0 mm
+47 | M12 | wysokość   | 798.0 mm
+48 | M12 | wysokość   | 798.0 mm
+49 | M13 | długość    | 1448.0 mm
+50 | M13 | długość    | 1448.0 mm
+51 | M13 | wysokość   | 983.0 mm
+52 | M13 | wysokość   | 983.0 mm
+
+======================================================================
+PLAN CIĘCIA
+======================================================================
+
+P1 (6000 mm)
+   1848.0 mm | M11 | długość    |   100.0 -  1948.0
+   1148.0 mm | M4 | długość    |  1951.0 -  3099.0
+   1048.0 mm | M8 | długość    |  3102.0 -  4150.0
+    798.0 mm | M12 | wysokość   |  4153.0 -  4951.0
+    533.0 mm | M8 | wysokość   |  4954.0 -  5487.0
+  Zużyto:      5387.0 mm
+  Pozostałość: 493.0 mm
+  → RESZTKA
+
+P2 (6000 mm)
+   1148.0 mm | M4 | długość    |   100.0 -  1248.0
+    983.0 mm | M13 | wysokość   |  1251.0 -  2234.0
+    948.0 mm | M2 | wysokość   |  2237.0 -  3185.0
+    848.0 mm | M9 | wysokość   |  3188.0 -  4036.0
+    798.0 mm | M12 | wysokość   |  4039.0 -  4837.0
+    698.0 mm | M10 | wysokość   |  4840.0 -  5538.0
+  Zużyto:      5438.0 mm
+  Pozostałość: 442.0 mm
+  → RESZTKA
+
+P3 (6000 mm)
+   1648.0 mm | M9 | długość    |   100.0 -  1748.0
+   1298.0 mm | M10 | długość    |  1751.0 -  3049.0
+    948.0 mm | M7 | wysokość   |  3052.0 -  4000.0
+    733.0 mm | M3 | wysokość   |  4003.0 -  4736.0
+    698.0 mm | M10 | wysokość   |  4739.0 -  5437.0
+  Zużyto:      5337.0 mm
+  Pozostałość: 543.0 mm
+  → RESZTKA
+
+P4 (3000 mm)
+   1448.0 mm | M1 | długość    |   100.0 -  1548.0
+    948.0 mm | M2 | wysokość   |  1551.0 -  2499.0
+  Zużyto:      2399.0 mm
+  Pozostałość: 481.0 mm
+  → RESZTKA
+
+P6 (5000 mm)
+   1948.0 mm | M7 | długość    |   100.0 -  2048.0
+   1448.0 mm | M1 | długość    |  2051.0 -  3499.0
+   1048.0 mm | M8 | długość    |  3502.0 -  4550.0
+  Zużyto:      4450.0 mm
+  Pozostałość: 430.0 mm
+  → RESZTKA
+
+P7 (5000 mm)
+   1348.0 mm | M6 | długość    |   100.0 -  1448.0
+   1133.0 mm | M11 | wysokość   |  1451.0 -  2584.0
+    883.0 mm | M5 | wysokość   |  2587.0 -  3470.0
+    883.0 mm | M5 | wysokość   |  3473.0 -  4356.0
+  Zużyto:      4256.0 mm
+  Pozostałość: 624.0 mm
+  → RESZTKA
+
+P11 (6000 mm)
+   1848.0 mm | M11 | długość    |   100.0 -  1948.0
+   1448.0 mm | M13 | długość    |  1951.0 -  3399.0
+   1348.0 mm | M6 | długość    |  3402.0 -  4750.0
+    533.0 mm | M8 | wysokość   |  4753.0 -  5286.0
+  Zużyto:      5186.0 mm
+  Pozostałość: 694.0 mm
+  → RESZTKA
+
+P12 (6000 mm)
+   1948.0 mm | M7 | długość    |   100.0 -  2048.0
+   1133.0 mm | M11 | wysokość   |  2051.0 -  3184.0
+    848.0 mm | M1 | wysokość   |  3187.0 -  4035.0
+    798.0 mm | M6 | wysokość   |  4038.0 -  4836.0
+    733.0 mm | M3 | wysokość   |  4839.0 -  5572.0
+  Zużyto:      5472.0 mm
+  Pozostałość: 408.0 mm
+  → RESZTKA
+
+P13 (6000 mm)
+   1273.0 mm | M2 | długość    |   100.0 -  1373.0
+   1198.0 mm | M12 | długość    |  1376.0 -  2574.0
+    848.0 mm | M1 | wysokość   |  2577.0 -  3425.0
+    798.0 mm | M6 | wysokość   |  3428.0 -  4226.0
+    648.0 mm | M4 | wysokość   |  4229.0 -  4877.0
+    648.0 mm | M4 | wysokość   |  4880.0 -  5528.0
+  Zużyto:      5428.0 mm
+  Pozostałość: 452.0 mm
+  → RESZTKA
+
+P14 (6000 mm)
+   1648.0 mm | M9 | długość    |   100.0 -  1748.0
+   1548.0 mm | M5 | długość    |  1751.0 -  3299.0
+   1198.0 mm | M12 | długość    |  3302.0 -  4500.0
+    948.0 mm | M7 | wysokość   |  4503.0 -  5451.0
+  Zużyto:      5351.0 mm
+  Pozostałość: 529.0 mm
+  → RESZTKA
+
+P15 (6000 mm)
+   1748.0 mm | M3 | długość    |   100.0 -  1848.0
+   1448.0 mm | M13 | długość    |  1851.0 -  3299.0
+   1273.0 mm | M2 | długość    |  3302.0 -  4575.0
+    983.0 mm | M13 | wysokość   |  4578.0 -  5561.0
+  Zużyto:      5461.0 mm
+  Pozostałość: 419.0 mm
+  → RESZTKA
+
+P16 (6000 mm)
+   1748.0 mm | M3 | długość    |   100.0 -  1848.0
+   1548.0 mm | M5 | długość    |  1851.0 -  3399.0
+   1298.0 mm | M10 | długość    |  3402.0 -  4700.0
+    848.0 mm | M9 | wysokość   |  4703.0 -  5551.0
+  Zużyto:      5451.0 mm
+  Pozostałość: 429.0 mm
+  → RESZTKA

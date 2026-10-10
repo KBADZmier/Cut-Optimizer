@@ -13,13 +13,7 @@ function App() {
         <div>
           <h1>Moskitiery</h1>
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setOkap((okap) = true)}
-        >
-          Count is {okap}
-        </button>
+  
       </section>
 
       <div className="ticks"></div>

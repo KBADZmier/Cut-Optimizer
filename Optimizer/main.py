@@ -1,60 +1,25 @@
 from config.settings import CuttingSettings
-from models.order import FrameOrder
-from models.profile import StockProfile
-
 from services.cut_generator import generate_cuts
 from services.ortools_optimizer import OrToolsOptimizer
-
-
+from tests.test_frame import orders
+from tests.test_profile import profiles
+from services.profile_inventory import (
+    apply_plans_to_inventory, generate_standard_profiles,
+    load_profiles_from_json, save_profiles_to_json,
+)
 def main():
 
-    orders = [
-        FrameOrder(
-            name="M1",
-            length_mm=1500,
-            height_mm=900,
-            quantity=2,
-            reduction_mm=52,
-            has_drip_cap=False,
-        ),
-        FrameOrder(
-            name="M2",
-            length_mm=1325,
-            height_mm=1000,
-            quantity=1,
-            reduction_mm=52,
-            has_drip_cap=False,
-        ),
-    ]
 
-    profiles = [
-        StockProfile("P1", 6000),
-        StockProfile("P2", 6000),
-        StockProfile("P3", 6000),
-
-        StockProfile("P4", 3000),
-        StockProfile("P5", 1600),
-    ]
+   
 
     settings = CuttingSettings(
         start_margin_mm=100,
         end_margin_mm=20,
         kerf_mm=3,
-        min_reusable_offcut_mm=150,
+        min_reusable_offcut_mm=400,
     )
 
     cuts = generate_cuts(orders)
-
-    print("ELEMENTY DO WYCIĘCIA:")
-    print()
-
-    for cut in cuts:
-        print(
-            f"{cut.id:02d} | "
-            f"{cut.frame_name} | "
-            f"{cut.side:10} | "
-            f"{cut.length_mm:.1f} mm"
-        )
 
     optimizer = OrToolsOptimizer(settings)
 
@@ -63,22 +28,34 @@ def main():
         profiles=profiles,
     )
 
-    print()
-    print("=" * 70)
-    print("PLAN CIĘCIA")
-    print("=" * 70)
+    lines = []
+
+    lines.append("ELEMENTY DO WYCIĘCIA:")
+    lines.append("")
+
+    for cut in cuts:
+        lines.append(
+            f"{cut.id:02d} | "
+            f"{cut.frame_name} | "
+            f"{cut.side:10} | "
+            f"{cut.length_mm:.1f} mm"
+        )
+
+    lines.append("")
+    lines.append("=" * 70)
+    lines.append("PLAN CIĘCIA")
+    lines.append("=" * 70)
 
     for plan in plans:
 
-        print()
-        print(
+        lines.append("")
+        lines.append(
             f"{plan.profile_id} "
             f"({plan.profile_length_mm:.0f} mm)"
         )
 
         for placed in plan.cuts:
-
-            print(
+            lines.append(
                 f"  {placed.cut.length_mm:7.1f} mm "
                 f"| {placed.cut.frame_name} "
                 f"| {placed.cut.side:10} "
@@ -86,20 +63,42 @@ def main():
                 f" - {placed.end_mm:7.1f}"
             )
 
-        print(
+        lines.append(
             f"  Zużyto:      "
             f"{plan.used_length_mm:.1f} mm"
         )
-
-        print(
+        lines.append(
             f"  Pozostałość: "
             f"{plan.remaining_mm:.1f} mm"
         )
 
         if plan.reusable_offcut:
-            print("  → RESZTKA")
+            lines.append("  → RESZTKA")
         else:
-            print("  → ODPAD")
+            lines.append("  → ODPAD")
+
+    # --- Zapis do pliku ---
+    output_file = "wynik.txt"
+    with open(output_file, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines))
+
+        #magazyn save
+    PATH = "Profiles/profiles_data.json"
+
+    inventory = load_profiles_from_json(PATH)
+    inventory_ids = {p.id for p in inventory}
+    standard = generate_standard_profiles(quantity=40, color="orzech", length_mm=5000.0)
+    all_profiles = standard + inventory
+
+    plans = optimizer.optimize(cuts, all_profiles)
+
+    inventory = apply_plans_to_inventory(all_profiles, plans, inventory_ids)
+    save_profiles_to_json(PATH, inventory)
+    
+    # --- Wypisanie w konsoli ---
+    print("\n".join(lines))
+    print()
+    print(f"Wynik zapisano do pliku: {output_file}")
 
 
 if __name__ == "__main__":

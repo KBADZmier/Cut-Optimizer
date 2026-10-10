@@ -16,3 +16,4 @@ class FrameOrder:
 
     has_drip_cap: bool = False
     drip_cap_reduction_mm: float = 15.0
+    color: str = ""

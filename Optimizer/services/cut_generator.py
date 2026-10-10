@@ -2,7 +2,7 @@ from typing import List
 
 from models.order import FrameOrder
 from models.cutting import Cut
-
+from tests.test_frame import orders
 
 def generate_cuts(
     orders: List[FrameOrder],
@@ -52,12 +52,12 @@ def generate_cuts(
                         frame_name=order.name,
                         side="długość",
                         length_mm=round(length, 1),
+                        color=order.color,
                     )
                 )
 
                 cut_id += 1
 
-            # Dwa elementy pionowe
             for _ in range(2):
 
                 cuts.append(
@@ -66,6 +66,7 @@ def generate_cuts(
                         frame_name=order.name,
                         side="wysokość",
                         length_mm=round(height, 1),
+                        color=order.color,
                     )
                 )
 
