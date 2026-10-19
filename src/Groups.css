@@ -1,0 +1,75 @@
+
+.groups-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.groups-toolbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.group-warning {
+  color: #b45309;
+  font-weight: 600;
+}
+
+.group-card {
+  display: grid;
+  gap: 12px;
+}
+
+
+.group-card--no-color {
+  border-color: #d97706;
+  box-shadow: 0 0 0 1px #d97706;
+}
+
+.group-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.group-name-input {
+  flex: 1 1 160px;
+  min-width: 140px;
+  padding: 6px 8px;
+  font-weight: 600;
+  font-size: 15px;
+  border: 1px solid rgba(128, 128, 128, 0.45);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+}
+
+.group-color {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.group-color select {
+  padding: 6px 8px;
+  border: 1px solid rgba(128, 128, 128, 0.45);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+}
+
+.group-count {
+  white-space: nowrap;
+}
+
+
+.group-marker {
+  font-size: 13px;
+  font-style: italic;
+  opacity: 0.8;
+  white-space: nowrap;
+}

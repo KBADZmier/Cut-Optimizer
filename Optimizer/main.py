@@ -77,7 +77,7 @@ def main():
         else:
             lines.append("  → ODPAD")
 
-    # --- Zapis do pliku ---
+
     output_file = "wynik.txt"
     with open(output_file, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
@@ -95,7 +95,7 @@ def main():
     inventory = apply_plans_to_inventory(all_profiles, plans, inventory_ids)
     save_profiles_to_json(PATH, inventory)
     
-    # --- Wypisanie w konsoli ---
+
     print("\n".join(lines))
     print()
     print(f"Wynik zapisano do pliku: {output_file}")
